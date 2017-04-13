@@ -102,4 +102,116 @@ In all these cases, when the CPU wants a word from memory or an I/O port, it put
 
 There will never be conflict because no address is assigned to I/O or memory  
 
-**DMA (Direct Memory Access)**
+**DMA (Direct Memory Access)**  
+The CPU could request data from an I/O controller one byte at a time, but that wastes CPU time and is not efficient. using DMA we can avoid this problem.  
+
+DMA controllers have several registers that can be read or written by the CPU. 
+
+| Register | Purpose |
+| :---: | :---: |
+| Memory Address | Specify I/O port to use|
+| Byte Count | Number of bytes to transfer | 
+| >= 1 Control register |  Direction of transfer (read or write), transfer unit (byte at a time or word at a time) |  
+
+Sometimes the controller is built into the disk controller or other controllers, but that would require a DMA for each device. The most common approach is to have a single DMA controller on the motherboard, which regulates transfers to multiple devices, usually concurrently. 
+
+*How DMA Works*  
+![How DMA Works](http://imgur.com/QFLhiwS.png)  
+
+*DMA Operation Modes*  
+1. Word-at-a-time Mode (Cycle Stealing): DMA Controller requests for the transfer of one word at a time  
+2. Block Mode (burst mode): DMA Controller tells the device to acquire the bus, issue a series of transfers, then release the bus  
+
+
+### Ways of Perofrming I/O
+**Programmed I/O**  
+Continuously poll the device with the CPU to see if it is ready to accept a request. Also known as *Polling or busy waiting*  
+
+Advantage | Disadvantage
+------------ | -------------
+Simple | CPU is tied up the full time until the I/O is done
+
+**Interrupt-Driven I/O**  
+
+See the figure  
+
+Advantage | Disadvantage
+------------ | -------------
+ CPU doesn't have to spend the entire time waiting until I/O is done| Interrupts take time so this waste some CPU time 
+ 
+ **I/O Using DMA**  
+ 
+ i.e., DMA is programmed I/O but with the DMA controller doing all the work instead of the CPU  
+ 
+ Advantage | Disadvantage
+------------ | -------------
+Number of interrupts is reduced | The DMA controller is slower than the main CPU. If the DMA controller can't drive the device at full speed, then the CPU usually has nothing to do until the DMA interrupt arrives. In this case, an interrupt-driven I/O or programmed I/O might be better  
+
+![interrupt driven i/o](http://imgur.com/JLmaj1z.png)
+
+### I/O Software Layers  
+
+![io sw layers](http://imgur.com/ZlE0n3o.png)  
+
+### How interrupts are handles  
+
+| Interrupt steps |
+| :-- | 
+| 1. Save any registers (including the PSW) that weren't saved by the interrupt hardware |
+| 2. Setup the context for the interrupt service procedure. Doing this might involve setting up the TLB, MMU, and page table |
+| 3. Setup stack for interrupt service procedure | 
+| 4. Acknowledge the interrupt controller. |
+| 5. Copy registers from where they were saved (probably the stack) to the process table |
+| 6. Run the interrupt service procedure. It will extract info from the interrupting device controller's registers | 
+| 7. Choose which process to run next. If the interrupt has caused high-priority process that was blocked to become ready, then run this one | 
+| 8. Setup the MMU context for the prcess to run next, Some TLB setup might be needed | 
+| 9. Load the new process' registers, including the PSW |
+| 10. Run the new process |   
+
+### Device Drives  
+
+Each I/O devices attached to the computer needs specific code controlling it. This is called the *device driver* and is written by the device's manufacturer and delivered with the device.  
+
+Each driver normally handles one device type or a class of related devices.  
+
+In some computers, the OS is a single binary program that contains all of the drivers needed built in. However, they are usually dynamically loaded.  
+
+| Functions of a device driver |
+| :-- |
+| 1. Translate a request through the device-independent standard interface (open, close, read, write) | 
+| 2. Initialize hardware and shut it down cleanly | 
+| 3. Power management and logging | 
+
+### Device-Independent I/O Software  
+
+Basic function of the device-independent software is to perform I/O functions that are common to all devices and to provide a uniform interface to the user-level software.  
+
+The following are usually done in device-independent software:  
+
+| Type | Description | Problems |
+| :--  | :-- | :-- |
+| Non-Buffered Systems | Consider a process reading data from a modem. The process does a ```read``` system call and blocks waiting for one character. Each arriving character causes an interrupt. The interrupt service procedure hands the char to the user process and unblocks it. This repeats for all characters | The user process has to be started for every incoming char. Running a process many times for short runs is inefficient, so this design is bad. | 
+|Buffer in User Space|User process provides an n-character buffer in user space and does a read of n characters. The interrupt service prcoedure puts the incoming characters in this buffer until it fills up, then wakes up the user process. | What happens if the buffer is paged out when a character arrives? The buffer could be locked in memory, but if lots of processes do this, the performance will degrade |
+| Buffering in Kernel Space | Have a buffer in the kernel space and have the interrupt handler put the characters there. When the buffer is full, the page with the user buffer is brought in, if needed, and the buffer is copied there. | What happens if the characters arrive while the page with the user buffer is being brought in from the disk? Since the buffer is full, there is no place to put them| 
+|Double buffering |A way to solve the above problems is to have a second kernel buffer. After the first one fills up, but before it has been emptied, the second buffer is used. When the second buffer fills up, the page will have been copied and we can copy it to user space. While the second buffer is being copied, we can then fill the first up again | Similar as buffering in kernel space, but less likely to occur due to the extra space|
+
+![Types of buffers](http://imgur.com/8QIzTDd.png)
+
+**Why buffering is needed**  
+*1. To cope with the speed mismatch between the producer and consumer of a data stream*  
+Suppose that a file is being received via a modem for storage on the hard disk. The modem is about a thousand times slower than the disk, so a buffer is created in main memory to accumulate a few bytes from the modem. When an entire buffer has arrive, we can write to the disk  
+*2. To adapt between devices that have different data-transfer sizes*  
+Such a disparities are common in networking, where buffers are used widely for fragmentation and reassembly of messages. At the sending side, a large mssage is fragmented into many small packets. The packets are sent, and the receiving end places them in a reassembly buffer to form an image of the source data.  
+
+### User-Space I/O Software
+
+Most of the I/O software is in the OS, but some of it is libraries linked together with user programs, and sometimes programs running outside of the kernel. Sys calls, such as the I/O sys calls, are normally made by library procedures. When a C program contains the call  
+```count = write(fd, buffer, nbytes);```  
+the library procedure ```write``` will be linked with the program and contained in the binary program present in memory at run time. The collection of these lib procedures is part of the I/O system  
+
+### Summary of the I/O System  
+
+![IO summary](http://imgur.com/ubMAv7E.png)
+
+
+
