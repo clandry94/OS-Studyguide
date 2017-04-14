@@ -183,7 +183,77 @@ There is an invariant for the four data structures. A resource is either allocat
 3. A process *not* in the cycle can be chosen as a victim to release more resources  
 	* One process might hold a printer and want a plotter, with another process holding a plotter wanting a printer. These two are deadlocked. A third process may hold another identical printer and another identical plotter and be happilty running. Killing the third process will release resources and break the deadlock in the first two.  
 
-*Recovery Through Resource Preemption*
+*Recovery Through Resource Preemption*  
+
+We can temporarily take away resources from its owner and give it to someone else. This one is highly dependent on the nature of the resource. Recovering this way usually does not work.  
+
+*Recovery Through Rollback*  
+
+If we preempty a resource from a process, what do we do with the process? It clearly cannot continue, so we must roll it back to some safe state. It is difficult to determine safe states, so the simplest solution is  total rollback. Abort the process and restart it.  
+
+### Deadlock Prevention  
+
+We provide a set of methods that ensure at least one of the four conditions for a deadlock cannot hold. These usually constrain how requests for resources can be made. 
+
+**Attacking the *Mutual Exclusion* Condition**  
+
+if no resource were ever assigned *exclusively* to a single process, deadlocks would not occur. Sharable resources don't require mutex, so they can't be the cause of deadlocks. e.g. Read-only files.  
+
+Some resources, like CD-ROMs and Printers are non-sharable.  
+
+**Attacking the *Hold and Wait* Condition**  
+
+To ensure that the hold-ant-wait never occurs in the system, we must guarantee that, whenever a process requests a resource, it doesn't hold any other resources. There are two ways to do this.  
+
+| Method | Disadvantage | 
+|:---|:---| 
+| Each process is required to request and be allocated all of its resources before it begins its execution| 1. Many processes do not know how many processes they will need </br> 2. Resources will not be used optimally with this approach </br></br> Example: A process reads data from an input tape, analyzes for an hour, then writes to the output tape as well as plotting results. if all resources must be made in advance, then we are wasting a lot of resource use.| 
+| Each process is to request resources *only* when it has *none* | Starvation is possible here. A process that needs several popualr resources may have to wait indefinitely, because at least one of the resources that it needs is always allocated somewhere else |  
+
+**Attacking the *No Preemption* Condition**  
+
+This technique applied when we can easily save a resource's state and restore them later, such as CPU registers and memory space. We cannot apply this to ptiners and tape drives.  
+
+**Attacking the *Circulat Wait* Condition**  
+
+Impose a total ordering of all resource types and to require each process requests a resource in increasing order of enumeration  
+
+For example, we can provide a global numbering of all resource, as seen in the figure:
+
+![enumeration](http://imgur.com/DLhqqPR.png)  
+
+With this, there are two protocols that can be followed:  
+
+*1. Each process can request resources only in an increasing order of enumeration*  
+
+A process may first request a scanner (2) and then a tape drive (4), but it can't get a plotter (3), then a scanner (2)  
+
+Proof that with this fule, the resource allocation graph can't have cycles:  
+
+Let us see why this is true for the case of two processes. From the figure, we can get a deadlock only if A requests a resource j and B requests resource i. Assuming i and j are distinct resources, they will have different numbers. Thus, if i > j, then A is not allowed to request j. If i < j, then B cannot request i. Either way, deadlock is then not possible.  
+
+*2. No process can request a resource lower than what it is already holding*  
+
+If a process holds 2 and 4, it cannot request 3 until it releases 4. However, it might releas all of its resources, then take any resource.  
+
+*Disadvantage of attacking the circular wait condition*  
+
+1. It may be impossilbe to find an ordering that satisfies everyone  
+2. When the resources include process table slots, disk spooler space, locked db records, and other abstract resources, then the number of potential resources and different uses may be so large that no ordering could work.  
+
+
+*Summary of Approaches to Deadlock Prevention*  
+
+|Condition|Approach|
+|:---|:---|
+|Mutual Exclusion| Share everything |
+|Hold and Wait | Request all resources initially |
+|No preemption | Take resources away |
+|Circular Wait| Order resources numerically|
+
+
+### Deadlock Avoidance  
+
 
  	 
  
