@@ -254,7 +254,53 @@ If a process holds 2 and 4, it cannot request 3 until it releases 4. However, it
 
 ### Deadlock Avoidance  
 
+Avoidance requires that the OS has additional info concerning *which resources* a process will request and use during its lifetime. With the knowledge, we can determine whether a process shoudl wait or not. To deceide whether is can be satisfied or delayed, we must consider what we currently have, resources currently allocated, and future requests and releases of each process.  
 
- 	 
- 
+
+**Safe and Unsafe States**  
+
+A state is safe if it is not deadlocked and some scheduling algorithm exists where every process can run to completion even if all of them suddenly request their maxmimum number of resources immediately.  
+
+A safe state is not a deadlocked state. A deadlocked state is not an unsafe state. Not all unsafe states are deadlocks, however, an unsafe state *may* lead to a deadlock. It depends on the other processes and if they release the resources held by them.  
+
+**Banker's Algorithm**  
+
+This scheduling algorithm can avoid deadlocks was formed thanks to Dijkstra.  
+
+The name was chosen for its use in banking systems to make sure a bank never allocates cash in a way that it can't satisfy all customers.  
+
+*Banker's Algorithm for a single resource type*  
+
+Consider each request as it occurs, and see if granting it leads to a safe state. If it does, request is granted. Otherwise, it is postponed until later. To see if the state is safe, the banker checks to see if he has enough resources to satisfy some customer. If so, those loans are assumed to be repaid,a nd thec ustomer now closest to the limit is checked, and so on. If all loans are repaid, the state is safe and the initial request can be granted.  
+
+*The Banker's ALgorithm for multiple resource types*  
+
+This algorithm is just like the deadlock detection algorithm. The difference is that, deadlock detection algorithm is used to detect whether a deadlock *has already* occured; whereas the Banker's algorithm figures out whether a deadlock *will* occur. In the previous case, after the algorithm finishes, if there remain unmarked processes, we can conclude that deadlock has occured and those processes are part of the deadlock. If there unmarked processes, we can coclude that the initial state was *not* safe and deadlock *might* occur. 
+
+
+| Drawbacks of the Banker's Algorithm |
+|:---|
+|1. Processes rarely know in advance what their maximum resource needs will be|
+|2. The number of processes is not fixed, but dynamically varying as new users log in and out|
+|3. Resources that were thought to be available can suddenly vanish (tape drives can break)| 
+
+Thus, in practice, few, if any, existing systems use the bankers algorithm.  
+
+
+### Two-Phase Locking  
+
+Grab a lock on all esources, then make all updates and release the locks. no real work occurs in the first phase.  
+
+### Non-resource Deadlocks 
+
+Deadlocks can also occur in situations that do not involve resources at all. Semaphores are a good example. If *downs* on semaphores are done in the wrong order, deadlock can occur.
+
+### Starvation
+
+A problem related to deadlocks is *starvation*. In a dynamic system, requests for resources happen all the time. Some plicy is needed to make a decision about who gets which resource when. This policy, although seemingly reasonable, may lead to processes never getting serviced.  
+
+One possible allocation algorithm is to give it to the process with the smallest file to print. This maximizes number of happy customers and seems fair. What happens if theres one huge file? That file never gets to print and it will starve to death.  
+
+Starvation can be avoided by using a FCFS resource allocation policy. 
+
 
