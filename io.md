@@ -197,7 +197,8 @@ The following are usually done in device-independent software:
 
 ![Types of buffers](http://imgur.com/8QIzTDd.png)
 
-**Why buffering is needed**  
+**Why buffering is needed** 
+ 
 *1. To cope with the speed mismatch between the producer and consumer of a data stream*  
 Suppose that a file is being received via a modem for storage on the hard disk. The modem is about a thousand times slower than the disk, so a buffer is created in main memory to accumulate a few bytes from the modem. When an entire buffer has arrive, we can write to the disk  
 *2. To adapt between devices that have different data-transfer sizes*  
@@ -213,5 +214,60 @@ the library procedure ```write``` will be linked with the program and contained 
 
 ![IO summary](http://imgur.com/ubMAv7E.png)
 
+### Magnetic Disk Structure 
 
+|![hdd](http://imgur.com/6e6Y1g2.png)|![platter](http://imgur.com/qtiGE94.png)|
+|:---:|:---:|
+|Disk assembly| Platter Layout|
 
+### Disk Geometry
+
+On old disks, number of sectors per track for all cylinders. New disks divided into zones with more sectors on the outder tracks than on the inner tracks. 
+
+To hide the # of sectors, the OS has a virtual geometry presented to the OS. So the OS only sees x cylinder, y heads, and z sectors and remaps request for (x,y,z). 
+
+**Cylinder Skew** 
+
+Position of sector 0 on each track is offset from the previous track when the low-level format is laid down. This is called the *cylinder skew*, and improves performance. Doing so lets us read multiple tracks in one continuous operation without losing data. 
+
+| ![zones](http://imgur.com/qeTKUt9.png) | ![virgeom](http://imgur.com/753PAEJ.png) | ![skew](http://imgur.com/gyYYUno.png)|
+|:---:|:---:|:---:|
+| Two disk zones | Virtual Geometry | Cylinder Skew |
+
+### Disk Formatting
+
+**Low-Level/Physical Formatting**
+
+New magnetic disks are blank, just a platter of magnetic recording material. To store data, we must split it into sectors that the controller can read and write. This is called *low-level or physical formatting*
+
+### Disk Arm Scheduling Algorithms
+
+For multiprogramming systems with many proceses, there might be many pending requests at one moment. So, when a request is finished, we need to schedule what we do next. How do we make this choice? There are several algorithms.
+
+**First Come First Serve** 
+The classic scheduling algo
+
+**Shortest Seek First (SSF) / Shortest Seek Time first (SSTF)**  
+Selects the request with the minimum seek time from the current head position  
+
+| Disadvantages | 
+|:--|
+| 1. It is substantially better than FCFS, but not optimal. |
+| 2. With a heavily loaded disk, the arm tends to stay in the middle of the disk most of the time, so requests at the extremes have to wait until enough statistical fluctuation in load. Requests far from middle get poor service, so minimal response time and fairness are in conflict. |
+
+**SCAN Scheduling / Elevator Scheduling**  
+Disk arm starts at one end of the disk and moves to the other end, servicing as it goes. Once there, it comes back and servicing continues. head continually goes back and forth
+
+| Disadvantage | 
+|:--|
+| Assuming uniform distribution of cylinders, consider the density of requests when the head reaches on end and reverses. At the point, few requests immediately in front of the head, since they have recently been serviced. The longest waiting are at the entirely other side, so they should be serviced first. |
+
+**Circular SCAN C-SCAN / Modified Elevator**  
+Like SCAN, does the same, but immediately comes back when it reaches the end.  This solves that disadvantage from before.  
+
+**LOOK and C-LOOK**  
+Scan and C-Scan move across the entire disk. In practice, neither is done this way. We only need to go as far as the final request in each direciton, the reverse immediately. LOOK and C-LOOK do this
+
+|![FCFS](http://imgur.com/jQy64g6.png)|![SSF](http://imgur.com/kk60ogZ.png)|![SCAN](http://imgur.com/OgdsVb0.png)|![C-SCAN](http://imgur.com/E6t2uxq.png)|![LOOK](http://imgur.com/WgsmxS3.png)|
+|:--:|:--:|:--:|:--:|:--:|
+|FCFS|SSF/SSTF|SCAN/Elevator|C-SCAN/Modified Elevator|LOOK/C-LOOK|
